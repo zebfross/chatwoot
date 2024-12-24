@@ -61,7 +61,7 @@
   "stack": "heroku-20",
   "buildpacks": [
     {
-      "url": "https://github.com/heroku/heroku-buildpack-nodejs#v267"
+      "url": "heroku/nodejs"
     },
     {
       "url": "heroku/ruby"
