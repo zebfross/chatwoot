@@ -11,7 +11,7 @@ module Redis::Config
 
     def base_config
       {
-        url: ENV.fetch('REDIS_URL', 'redis-14205.c74.us-east-1-4.ec2.redns.redis-cloud.com:14205'),
+        url: ENV.fetch('REDIS_URL', 'redis://redis-14205.c74.us-east-1-4.ec2.redns.redis-cloud.com:14205'),
         password: ENV.fetch('REDIS_PASSWORD', 'qa9AHrtGGeqMbfGp1B5rqxJbulHXSr42').presence,
         ssl_params: { verify_mode: Chatwoot.redis_ssl_verify_mode },
         reconnect_attempts: 2,
