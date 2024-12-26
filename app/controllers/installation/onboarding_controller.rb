@@ -38,6 +38,6 @@ class Installation::OnboardingController < ApplicationController
   end
 
   def ensure_installation_onboarding
-    return
+    redirect_to '/' unless ::Redis::Alfred.get(::Redis::Alfred::CHATWOOT_INSTALLATION_ONBOARDING)
   end
 end
