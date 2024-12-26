@@ -41,7 +41,7 @@ class DashboardController < ActionController::Base
   end
 
   def ensure_installation_onboarding
-    redirect_to '/installation/onboarding' if ::Redis::Alfred.get(::Redis::Alfred::CHATWOOT_INSTALLATION_ONBOARDING)
+    redirect_to '/installation/onboarding'
   end
 
   def render_hc_if_custom_domain
