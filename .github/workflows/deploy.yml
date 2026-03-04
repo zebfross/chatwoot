@@ -7,20 +7,45 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 30
     steps:
-      - name: Deploy via SSH
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install pnpm
+        run: npm install -g pnpm@10
+
+      - name: Build assets
+        run: |
+          pnpm install --frozen-lockfile
+          echo "-------------- Building SDK for Production --------------"
+          pnpm run build:sdk
+          echo "-------------- Building App for Production --------------"
+          RAILS_ENV=production npx vite build
+
+      - name: Deploy to server
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=10 root@${{ secrets.DEPLOY_HOST }} '
-            # Ensure swap exists for asset compilation on low-memory servers
-            if [ ! -f /swapfile ]; then
-              fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
-            elif ! swapon --show | grep -q /swapfile; then
-              swapon /swapfile 2>/dev/null || true
-            fi &&
-            su - chatwoot -c "cd chatwoot && git pull --ff-only origin develop && RAILS_ENV=production bundle exec rails db:migrate && NODE_OPTIONS=--max-old-space-size=1536 RAILS_ENV=production bundle exec rake assets:precompile" &&
+          SSH_OPTS="-i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
+
+          # Git pull and run migrations on server
+          ssh $SSH_OPTS root@${{ secrets.DEPLOY_HOST }} '
+            su - chatwoot -c "cd chatwoot && git pull --ff-only origin develop && RAILS_ENV=production bundle exec rails db:migrate"
+          '
+
+          # Rsync built assets to server
+          rsync -avz --delete -e "ssh $SSH_OPTS" \
+            public/packs/ \
+            root@${{ secrets.DEPLOY_HOST }}:/home/chatwoot/chatwoot/public/packs/
+
+          # Fix ownership and restart
+          ssh $SSH_OPTS root@${{ secrets.DEPLOY_HOST }} '
+            chown -R chatwoot:chatwoot /home/chatwoot/chatwoot/public/packs &&
             systemctl restart chatwoot.target
           '
