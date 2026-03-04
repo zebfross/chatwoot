@@ -107,31 +107,14 @@ class ConversationFinder
     @conversations = current_account.conversations
 
     unless params[:inbox_id]
+      # Exclude internal conversations from "All Conversations" view;
+      # PermissionFilterService enforces per-user privacy for internal convos
       internal_ids = current_account.inboxes.where(channel_type: 'Channel::Internal').pluck(:id)
       @conversations = @conversations.where.not(inbox_id: internal_ids) if internal_ids.any?
       return
     end
 
     @conversations = @conversations.where(inbox_id: @inbox_ids)
-
-    # For internal inboxes, only show conversations the agent is involved in
-    filter_internal_conversations
-  end
-
-  def filter_internal_conversations
-    return unless params[:inbox_id]
-
-    inbox = current_account.inboxes.find_by(id: params[:inbox_id])
-    return unless inbox&.internal?
-
-    shadow_contact = current_account.contacts.find_by(shadow_user_id: current_user.id)
-    shadow_contact_id = shadow_contact&.id
-
-    @conversations = @conversations.where(
-      'conversations.assignee_id = :user_id OR conversations.contact_id = :contact_id',
-      user_id: current_user.id,
-      contact_id: shadow_contact_id
-    )
   end
 
   def find_all_conversations
