@@ -2,6 +2,7 @@ import { INBOX_TYPES } from 'dashboard/helper/inbox';
 import { getInboxIconByType } from 'dashboard/helper/inbox';
 import camelcaseKeys from 'camelcase-keys';
 import ContactAPI from 'dashboard/api/contacts';
+import InternalContactsAPI from 'dashboard/api/internalContacts';
 
 const CHANNEL_PRIORITY = {
   'Channel::Email': 1,
@@ -10,6 +11,7 @@ const CHANNEL_PRIORITY = {
   'Channel::TwilioSms': 4,
   'Channel::WebWidget': 5,
   'Channel::Api': 6,
+  'Channel::Internal': 7,
 };
 
 export const generateLabelForContactableInboxesList = ({
@@ -18,6 +20,9 @@ export const generateLabelForContactableInboxesList = ({
   channelType,
   phoneNumber,
 }) => {
+  if (channelType === INBOX_TYPES.INTERNAL) {
+    return name;
+  }
   if (channelType === INBOX_TYPES.EMAIL) {
     return `${name} (${email})`;
   }
@@ -71,10 +76,29 @@ export const compareInboxes = (a, b) => {
   return nameA.localeCompare(nameB);
 };
 
-export const buildContactableInboxesList = contactInboxes => {
-  if (!contactInboxes) return [];
+export const buildContactableInboxesList = (
+  contactInboxes,
+  allInboxes = []
+) => {
+  const list = contactInboxes ? contactInboxes.map(transformInbox) : [];
 
-  return contactInboxes.map(transformInbox).sort(compareInboxes);
+  // Always include Internal inboxes so agents can start internal conversations
+  const internalInboxes = allInboxes
+    .filter(
+      inbox =>
+        inbox.channelType === INBOX_TYPES.INTERNAL ||
+        inbox.channel_type === 'Channel::Internal'
+    )
+    .filter(inbox => !list.some(existing => existing.id === inbox.id))
+    .map(inbox =>
+      transformInbox({
+        id: inbox.id,
+        name: inbox.name,
+        channelType: 'Channel::Internal',
+      })
+    );
+
+  return [...list, ...internalInboxes].sort(compareInboxes);
 };
 
 export const getCapitalizedNameFromEmail = email => {
@@ -207,6 +231,11 @@ export const createNewContact = async input => {
   } = await ContactAPI.create(payload);
 
   return camelcaseKeys(newContact, { deep: true });
+};
+
+export const fetchInternalContacts = async () => {
+  const { data } = await InternalContactsAPI.get();
+  return camelcaseKeys(data, { deep: true });
 };
 
 export const fetchContactableInboxes = async contactId => {

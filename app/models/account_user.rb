@@ -36,7 +36,7 @@ class AccountUser < ApplicationRecord
 
   accepts_nested_attributes_for :account
 
-  after_create_commit :notify_creation, :create_notification_setting
+  after_create_commit :notify_creation, :create_notification_setting, :create_shadow_contact
   after_destroy :notify_deletion, :remove_user_from_account
   after_save :update_presence_in_redis, if: :saved_change_to_availability?
 
@@ -70,6 +70,15 @@ class AccountUser < ApplicationRecord
 
   def notify_creation
     Rails.configuration.dispatcher.dispatch(AGENT_ADDED, Time.zone.now, account: account)
+  end
+
+  def create_shadow_contact
+    return unless account.inboxes.exists?(channel_type: 'Channel::Internal')
+
+    shadow_contact = Internal::ShadowContactService.find_or_create_for(user: user, account: account)
+    account.inboxes.where(channel_type: 'Channel::Internal').find_each do |inbox|
+      Internal::ShadowContactService.ensure_contact_inbox(contact: shadow_contact, inbox: inbox)
+    end
   end
 
   def notify_deletion

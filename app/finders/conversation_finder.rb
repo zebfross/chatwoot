@@ -106,7 +106,11 @@ class ConversationFinder
   def find_conversation_by_inbox
     @conversations = current_account.conversations
 
-    return unless params[:inbox_id]
+    unless params[:inbox_id]
+      internal_ids = current_account.inboxes.where(channel_type: 'Channel::Internal').pluck(:id)
+      @conversations = @conversations.where.not(inbox_id: internal_ids) if internal_ids.any?
+      return
+    end
 
     @conversations = @conversations.where(inbox_id: @inbox_ids)
   end

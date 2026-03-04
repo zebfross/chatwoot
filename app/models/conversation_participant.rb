@@ -36,6 +36,8 @@ class ConversationParticipant < ApplicationRecord
   end
 
   def ensure_inbox_access
+    return if conversation&.inbox&.internal?
+
     errors.add(:user, 'must have inbox access') if conversation && conversation.inbox.assignable_agents.exclude?(user)
   end
 end

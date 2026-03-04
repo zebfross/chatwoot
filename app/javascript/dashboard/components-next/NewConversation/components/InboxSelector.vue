@@ -28,6 +28,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  hasInternalInbox: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits([
@@ -76,7 +80,7 @@ const targetInboxLabel = computed(() => {
         variant="link"
         size="sm"
         :color="hasErrors ? 'ruby' : 'slate'"
-        :disabled="!selectedContact"
+        :disabled="!selectedContact && !hasInternalInbox"
         class="hover:!no-underline"
         @click="emit('toggleDropdown', !showInboxesDropdown)"
       />

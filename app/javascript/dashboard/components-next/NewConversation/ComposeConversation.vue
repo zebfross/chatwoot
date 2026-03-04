@@ -17,6 +17,7 @@ import {
   fetchContactableInboxes,
   processContactableInboxes,
   mergeInboxDetails,
+  fetchInternalContacts,
 } from 'dashboard/components-next/NewConversation/helpers/composeConversationHelper';
 import wootConstants from 'dashboard/constants/globals';
 
@@ -58,6 +59,7 @@ const isCreatingContact = ref(false);
 const isFetchingInboxes = ref(false);
 const isSearching = ref(false);
 const showComposeNewConversation = ref(false);
+const internalContacts = ref([]);
 
 const formState = reactive({
   message: '',
@@ -155,10 +157,33 @@ const handleSelectedContact = async ({ value, action, ...rest }) => {
   }
 };
 
-const handleTargetInbox = inbox => {
+const handleTargetInbox = async inbox => {
   targetInbox.value = inbox;
   if (!inbox) clearFormState();
   resetContacts();
+
+  // If internal inbox selected, fetch internal contacts (agents with shadow contact IDs)
+  if (
+    inbox?.channelType === 'Channel::Internal' &&
+    !internalContacts.value.length
+  ) {
+    try {
+      internalContacts.value = await fetchInternalContacts();
+    } catch {
+      internalContacts.value = [];
+    }
+  }
+};
+
+const handleAgentSelected = agent => {
+  // Find the shadow_contact_id from internal contacts
+  const internalContact = internalContacts.value.find(c => c.id === agent.id);
+  if (internalContact) {
+    selectedContact.value = {
+      id: internalContact.shadowContactId,
+      name: internalContact.name,
+    };
+  }
 };
 
 const clearSelectedContact = () => {
@@ -315,6 +340,7 @@ useKeyboardEvents(keyboardEvents);
         @update-target-inbox="handleTargetInbox"
         @clear-selected-contact="clearSelectedContact"
         @create-conversation="createConversation"
+        @select-agent="handleAgentSelected"
         @discard="discardCompose"
       />
     </div>

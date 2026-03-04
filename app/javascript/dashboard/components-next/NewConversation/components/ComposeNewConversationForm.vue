@@ -9,6 +9,7 @@ import {
   getEffectiveChannelType,
   stripUnsupportedMarkdown,
 } from 'dashboard/helper/editorHelper';
+import { useMapGetter } from 'dashboard/composables/store';
 import {
   buildContactableInboxesList,
   prepareNewMessagePayload,
@@ -16,6 +17,7 @@ import {
 } from 'dashboard/components-next/NewConversation/helpers/composeConversationHelper.js';
 
 import ContactSelector from './ContactSelector.vue';
+import AgentSelector from './AgentSelector.vue';
 import InboxSelector from './InboxSelector.vue';
 import EmailOptions from './EmailOptions.vue';
 import MessageEditor from './MessageEditor.vue';
@@ -47,12 +49,16 @@ const emit = defineEmits([
   'updateTargetInbox',
   'clearSelectedContact',
   'createConversation',
+  'selectAgent',
 ]);
+
+const inboxesList = useMapGetter('inboxes/getInboxes');
 
 const DEFAULT_FORMATTING = 'Context::Default';
 
 const showContactsDropdown = ref(false);
 const showInboxesDropdown = ref(false);
+const selectedInternalAgent = ref(null);
 const showCcEmailsDropdown = ref(false);
 const showBccEmailsDropdown = ref(false);
 
@@ -65,6 +71,10 @@ const state = props.formState || {
   bccEmails: '',
   attachedFiles: [],
 };
+
+const isInternal = computed(
+  () => props.targetInbox?.channelType === INBOX_TYPES.INTERNAL
+);
 
 const inboxTypes = computed(() => ({
   isEmail: props.targetInbox?.channelType === INBOX_TYPES.EMAIL,
@@ -135,7 +145,16 @@ const newMessagePayload = () => {
 };
 
 const contactableInboxesList = computed(() => {
-  return buildContactableInboxesList(props.selectedContact?.contactInboxes);
+  return buildContactableInboxesList(
+    props.selectedContact?.contactInboxes,
+    inboxesList.value
+  );
+});
+
+const hasInternalInbox = computed(() => {
+  return contactableInboxesList.value.some(
+    inbox => inbox.channelType === INBOX_TYPES.INTERNAL
+  );
 });
 
 const showNoInboxAlert = computed(() => {
@@ -226,12 +245,24 @@ const removeTargetInbox = value => {
 
   stripMessageFormatting(DEFAULT_FORMATTING);
 
+  selectedInternalAgent.value = null;
   emit('updateTargetInbox', value);
   state.attachedFiles = [];
 };
 
+const handleAgentSelect = agent => {
+  selectedInternalAgent.value = agent;
+  emit('selectAgent', agent);
+};
+
+const clearSelectedAgent = () => {
+  selectedInternalAgent.value = null;
+  emit('clearSelectedContact');
+};
+
 const clearSelectedContact = () => {
   removeSignatureFromMessage();
+  selectedInternalAgent.value = null;
   emit('clearSelectedContact');
   state.message = '';
   state.attachedFiles = [];
@@ -331,7 +362,15 @@ const shouldShowMessageEditor = computed(() => {
     class="w-[42rem] divide-y divide-n-strong overflow-visible transition-all duration-300 ease-in-out top-full flex flex-col bg-n-alpha-3 border border-n-strong shadow-sm backdrop-blur-[100px] rounded-xl min-w-0 max-h-[calc(100vh-8rem)]"
   >
     <div class="flex-1 overflow-y-auto divide-y divide-n-strong">
+      <AgentSelector
+        v-if="isInternal"
+        :selected-agent="selectedInternalAgent"
+        :has-errors="validationStates.isContactInvalid"
+        @select-agent="handleAgentSelect"
+        @clear-agent="clearSelectedAgent"
+      />
       <ContactSelector
+        v-else
         :contacts="contacts"
         :selected-contact="selectedContact"
         :show-contacts-dropdown="showContactsDropdown"
@@ -354,6 +393,7 @@ const shouldShowMessageEditor = computed(() => {
         :show-inboxes-dropdown="showInboxesDropdown"
         :contactable-inboxes-list="contactableInboxesList"
         :has-errors="validationStates.isInboxInvalid"
+        :has-internal-inbox="hasInternalInbox"
         @update-inbox="removeTargetInbox"
         @toggle-dropdown="showInboxesDropdown = $event"
         @handle-inbox-action="handleInboxAction"

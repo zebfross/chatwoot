@@ -39,6 +39,7 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
         )
       )
       @inbox.save!
+      setup_internal_inbox if @inbox.internal?
     end
   end
 
@@ -111,7 +112,7 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
   end
 
   def allowed_channel_types
-    %w[web_widget api email line telegram whatsapp sms]
+    %w[web_widget api email line telegram whatsapp sms internal]
   end
 
   def update_inbox_working_hours
@@ -193,12 +194,23 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
       'line' => Channel::Line,
       'telegram' => Channel::Telegram,
       'whatsapp' => Channel::Whatsapp,
-      'sms' => Channel::Sms
+      'sms' => Channel::Sms,
+      'internal' => Channel::Internal
     }[permitted_params[:channel][:type]]
   end
 
   def get_channel_attributes(channel_type)
     channel_type.constantize.const_defined?(:EDITABLE_ATTRS) ? channel_type.constantize::EDITABLE_ATTRS.presence : []
+  end
+
+  def setup_internal_inbox
+    agent_user_ids = Current.account.account_users.pluck(:user_id)
+    agent_user_ids.each do |user_id|
+      user = User.find(user_id)
+      shadow_contact = Internal::ShadowContactService.find_or_create_for(user: user, account: Current.account)
+      Internal::ShadowContactService.ensure_contact_inbox(contact: shadow_contact, inbox: @inbox)
+    end
+    @inbox.add_members(agent_user_ids)
   end
 
   def whatsapp_channel?
