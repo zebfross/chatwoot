@@ -6,7 +6,7 @@ class Api::V1::Accounts::InternalContactsController < Api::V1::Accounts::BaseCon
 
     render json: [] and return unless internal_inbox
 
-    agents = Current.account.users.includes(:contacts).map do |user|
+    agents = Current.account.users.map do |user|
       shadow_contact = Current.account.contacts.find_by(shadow_user_id: user.id)
       next unless shadow_contact
 
