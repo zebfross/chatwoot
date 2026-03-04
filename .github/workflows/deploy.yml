@@ -14,6 +14,6 @@ jobs:
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.DEPLOY_HOST }} '
-            su - chatwoot -c "cd chatwoot && git pull --ff-only origin develop && RAILS_ENV=production bundle exec rails db:migrate" &&
+            su - chatwoot -c "cd chatwoot && git pull --ff-only origin develop && RAILS_ENV=production bundle exec rails db:migrate && RAILS_ENV=production bundle exec rake assets:precompile" &&
             systemctl restart chatwoot.target
           '
