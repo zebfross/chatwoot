@@ -77,10 +77,39 @@ const assignee = computed(() => chatMetadata.value.assignee || {});
 
 const senderId = computed(() => chatMetadata.value.sender?.id);
 
+const currentUser = useMapGetter('getCurrentUser');
+
+const chatInbox = computed(() => {
+  const inboxId = props.chat?.inbox_id;
+  return inboxId ? inboxesList.value.find(i => i.id === inboxId) || {} : {};
+});
+
+const isInternalInbox = computed(() => {
+  const ct = chatInbox.value?.channel_type || chatInbox.value?.channelType;
+  return ct === 'Channel::Internal';
+});
+
 const currentContact = computed(() => {
-  return senderId.value
+  const contact = senderId.value
     ? store.getters['contacts/getContact'](senderId.value)
     : {};
+
+  // For internal conversations, show the other agent's name:
+  // If the assignee is someone else (they messaged you), show the assignee info.
+  // If you are the assignee, the contact is the other agent's shadow — name is correct.
+  if (
+    isInternalInbox.value &&
+    assignee.value?.id &&
+    assignee.value.id !== currentUser.value?.id
+  ) {
+    return {
+      name: assignee.value.name,
+      thumbnail: assignee.value.thumbnail,
+      availabilityStatus: assignee.value.availability_status,
+    };
+  }
+
+  return contact;
 });
 
 const isActiveChat = computed(() => {

@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { getInboxIconByType } from 'dashboard/helper/inbox';
 import { useRouter, useRoute } from 'vue-router';
 import { frontendURL, conversationUrl } from 'dashboard/helper/URLHelper.js';
+import { useMapGetter } from 'dashboard/composables/store';
 import { dynamicTime, shortTimestamp } from 'shared/helpers/timeHelper';
 
 import Icon from 'dashboard/components-next/icon/Icon.vue';
@@ -35,15 +36,37 @@ const route = useRoute();
 
 const cardMessagePreviewWithMetaRef = ref(null);
 
-const currentContact = computed(() => props.contact);
+const currentUser = useMapGetter('getCurrentUser');
+
+const inbox = computed(() => props.stateInbox);
+
+const isInternalInbox = computed(() => {
+  const ct = inbox.value?.channelType || inbox.value?.channel_type;
+  return ct === 'Channel::Internal';
+});
+
+const currentContact = computed(() => {
+  // For internal conversations, show the other agent's name
+  const assignee = props.conversation?.meta?.assignee;
+  if (
+    isInternalInbox.value &&
+    assignee?.id &&
+    assignee.id !== currentUser.value?.id
+  ) {
+    return {
+      name: assignee.name,
+      thumbnail: assignee.thumbnail,
+      availabilityStatus: assignee.availability_status,
+    };
+  }
+  return props.contact;
+});
 
 const currentContactName = computed(() => currentContact.value?.name);
 const currentContactThumbnail = computed(() => currentContact.value?.thumbnail);
 const currentContactStatus = computed(
   () => currentContact.value?.availabilityStatus
 );
-
-const inbox = computed(() => props.stateInbox);
 
 const inboxName = computed(() => inbox.value?.name);
 
