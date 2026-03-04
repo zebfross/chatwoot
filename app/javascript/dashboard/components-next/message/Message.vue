@@ -147,6 +147,11 @@ const inboxGetter = useMapGetter('inboxes/getInbox');
 const inbox = computed(() => inboxGetter.value(props.inboxId) || {});
 const { replaceInstallationName } = useBranding();
 
+const isInternalInbox = computed(() => {
+  const channelType = inbox.value?.channel_type || inbox.value?.channelType;
+  return channelType === 'Channel::Internal';
+});
+
 /**
  * Computes the message variant based on props
  * @type {import('vue').ComputedRef<'user'|'agent'|'activity'|'private'|'bot'|'template'>}
@@ -179,6 +184,14 @@ const variant = computed(() => {
     (!props.sender && !props.additionalAttributes?.senderName);
   if (isBot && props.messageType === MESSAGE_TYPES.OUTGOING) {
     return MESSAGE_VARIANTS.BOT;
+  }
+
+  // In internal conversations, show the other agent's messages with USER variant
+  if (isInternalInbox.value && props.messageType === MESSAGE_TYPES.OUTGOING) {
+    const senderId = props.senderId ?? props.sender?.id;
+    return senderId === props.currentUserId
+      ? MESSAGE_VARIANTS.AGENT
+      : MESSAGE_VARIANTS.USER;
   }
 
   const variants = {
@@ -226,11 +239,19 @@ const isBotOrAgentMessage = computed(() => {
  * @returns {import('vue').ComputedRef<'left'|'right'|'center'>} The computed orientation
  */
 const orientation = computed(() => {
+  if (props.messageType === MESSAGE_TYPES.ACTIVITY) return ORIENTATION.CENTER;
+
+  // In internal conversations, only show current user's messages on the right
+  if (isInternalInbox.value) {
+    const senderId = props.senderId ?? props.sender?.id;
+    return senderId === props.currentUserId
+      ? ORIENTATION.RIGHT
+      : ORIENTATION.LEFT;
+  }
+
   if (isBotOrAgentMessage.value) {
     return ORIENTATION.RIGHT;
   }
-
-  if (props.messageType === MESSAGE_TYPES.ACTIVITY) return ORIENTATION.CENTER;
 
   return ORIENTATION.LEFT;
 });
