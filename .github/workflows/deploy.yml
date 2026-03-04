@@ -39,13 +39,16 @@ jobs:
             su - chatwoot -c "cd chatwoot && git pull --ff-only origin develop && RAILS_ENV=production bundle exec rails db:migrate"
           '
 
-          # Rsync built assets to server
+          # Rsync built assets to server (SDK -> public/packs, App -> public/vite)
           rsync -avz --delete -e "ssh $SSH_OPTS" \
             public/packs/ \
             root@${{ secrets.DEPLOY_HOST }}:/home/chatwoot/chatwoot/public/packs/
+          rsync -avz --delete -e "ssh $SSH_OPTS" \
+            public/vite/ \
+            root@${{ secrets.DEPLOY_HOST }}:/home/chatwoot/chatwoot/public/vite/
 
           # Fix ownership and restart
           ssh $SSH_OPTS root@${{ secrets.DEPLOY_HOST }} '
-            chown -R chatwoot:chatwoot /home/chatwoot/chatwoot/public/packs &&
+            chown -R chatwoot:chatwoot /home/chatwoot/chatwoot/public/packs /home/chatwoot/chatwoot/public/vite &&
             systemctl restart chatwoot.target
           '
