@@ -105,7 +105,8 @@ const removeAgent = agentId => {
         </div>
         <TagInput
           placeholder="Search for agents..."
-          mode="single"
+          mode="multiple"
+          :model-value="[]"
           :menu-items="filteredAgents"
           :show-dropdown="showDropdown"
           :is-loading="false"
