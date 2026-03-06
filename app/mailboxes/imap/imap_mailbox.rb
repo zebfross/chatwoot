@@ -115,7 +115,10 @@ class Imap::ImapMailbox
 
   def sent_by_agent?
     sender_email = @processed_mail.original_sender&.downcase
+    from_email = @processed_mail.from&.first&.downcase
     return false if sender_email.blank?
+
+    Rails.logger.info("[IMAP::AGENT_CHECK] original_sender=#{sender_email} from=#{from_email} channel_email=#{@channel.email} imap_login=#{@channel.imap_login}")
 
     # Check if sender matches the inbox email
     return true if sender_email == @channel.email&.downcase
@@ -172,11 +175,17 @@ class Imap::ImapMailbox
   end
 
   def process_outgoing_email
+    Rails.logger.info("[IMAP::OUTGOING] Processing outgoing email from #{@processed_mail.original_sender} to #{@processed_mail.to&.first} | in_reply_to: #{in_reply_to} | references: #{@inbound_mail.references&.inspect}")
+
     ActiveRecord::Base.transaction do
       find_or_create_contact_from_recipients
-      return if @contact.nil?
+      if @contact.nil?
+        Rails.logger.info("[IMAP::OUTGOING] No contact found/created for recipient #{@processed_mail.to&.first}, skipping")
+        return
+      end
 
       find_or_create_conversation
+      Rails.logger.info("[IMAP::OUTGOING] Conversation #{@conversation.id} (#{@conversation.previously_new_record? ? 'NEW' : 'EXISTING'}) for message #{@processed_mail.message_id}")
       create_outgoing_message
       add_attachments_to_message
     end
