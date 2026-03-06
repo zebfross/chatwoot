@@ -12,12 +12,22 @@ class Imap::ImapMailbox
     load_inbox
     decorate_mail
 
-    Rails.logger.info("Processing Email from: #{@processed_mail.original_sender} : inbox #{@inbox.id} : message_id #{@processed_mail.message_id}")
+    @from_sent_folder = @inbound_mail['X-Chatwoot-Source']&.value == 'sent'
 
-    if sent_by_agent?
+    Rails.logger.info("Processing Email from: #{@processed_mail.original_sender} : inbox #{@inbox.id} : message_id #{@processed_mail.message_id} : source=#{@from_sent_folder ? 'sent' : 'inbox'}")
+
+    if @from_sent_folder
+      # Sent folder: only process if sender matches this channel's email
+      if sent_from_this_channel?
+        process_outgoing_email
+      else
+        Rails.logger.info("[IMAP::SENT_SKIP] Skipping sent email from #{@processed_mail.original_sender} — doesn't match channel #{@channel.email}")
+      end
+    elsif sent_from_this_channel?
+      # Inbox email from our own address (e.g., bounce or copy) — treat as outgoing
       process_outgoing_email
     else
-      # Skip processing email if it belongs to any of the edge cases
+      # Normal incoming email
       return unless incoming_email_from_valid_email?
 
       ActiveRecord::Base.transaction do
@@ -113,24 +123,16 @@ class Imap::ImapMailbox
     )
   end
 
-  def sent_by_agent?
-    sender_email = @processed_mail.original_sender&.downcase
-    from_email = @processed_mail.from&.first&.downcase
+  def sent_from_this_channel?
+    sender_email = @processed_mail.from&.first&.downcase
     return false if sender_email.blank?
 
-    Rails.logger.info("[IMAP::AGENT_CHECK] original_sender=#{sender_email} from=#{from_email} channel_email=#{@channel.email} imap_login=#{@channel.imap_login}")
-
-    # Check if sender matches the inbox email
-    return true if sender_email == @channel.email&.downcase
-    return true if sender_email == @channel.imap_login&.downcase
-
-    # Check if sender is an agent on this account
-    @account.users.exists?(email: sender_email)
+    sender_email == @channel.email&.downcase || sender_email == @channel.imap_login&.downcase
   end
 
   def find_agent_by_email
-    sender_email = @processed_mail.original_sender&.downcase
-    @account.users.find_by(email: sender_email)
+    sender_email = @processed_mail.from&.first&.downcase
+    @account.users.find_by(email: sender_email) || @account.users.find_by(email: @channel.email&.downcase)
   end
 
   def find_or_create_contact_from_recipients

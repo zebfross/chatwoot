@@ -111,7 +111,10 @@ class Imap::BaseFetchEmailService
     return [] if sent_folder.nil?
 
     imap_client.select(sent_folder)
-    fetch_mail_for_channel
+    emails = fetch_mail_for_channel
+    # Tag sent folder emails so the mailbox can distinguish them from inbox emails
+    emails.each { |mail| mail['X-Chatwoot-Source'] = 'sent' }
+    emails
   rescue Net::IMAP::NoResponseError => e
     Rails.logger.info "[IMAP::FETCH_EMAIL_SERVICE] Could not access sent folder for #{channel.email}: #{e.message}"
     []
