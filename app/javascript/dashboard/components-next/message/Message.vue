@@ -267,6 +267,10 @@ const flexOrientationClass = computed(() => {
 });
 
 const gridClass = computed(() => {
+  if (orientation.value === ORIENTATION.LEFT && isInternalInbox.value) {
+    return 'grid grid-cols-[24px_1fr]';
+  }
+
   const map = {
     [ORIENTATION.LEFT]: 'grid grid-cols-1fr',
     [ORIENTATION.RIGHT]: 'grid grid-cols-[1fr_24px]',
@@ -276,6 +280,13 @@ const gridClass = computed(() => {
 });
 
 const gridTemplate = computed(() => {
+  if (orientation.value === ORIENTATION.LEFT && isInternalInbox.value) {
+    return `
+      "avatar bubble"
+      "spacer meta"
+    `;
+  }
+
   const map = {
     [ORIENTATION.LEFT]: `
       "bubble"
@@ -298,7 +309,8 @@ const shouldGroupWithNext = computed(() => {
 
 const shouldShowAvatar = computed(() => {
   if (props.messageType === MESSAGE_TYPES.ACTIVITY) return false;
-  if (orientation.value === ORIENTATION.LEFT) return false;
+  if (orientation.value === ORIENTATION.LEFT && !isInternalInbox.value)
+    return false;
 
   return true;
 });
