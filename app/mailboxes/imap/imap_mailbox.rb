@@ -14,15 +14,13 @@ class Imap::ImapMailbox
 
     @from_sent_folder = @inbound_mail['X-Chatwoot-Source']&.value == 'sent'
 
-    Rails.logger.info("Processing Email from: #{@processed_mail.original_sender} : inbox #{@inbox.id} : message_id #{@processed_mail.message_id} : source=#{@from_sent_folder ? 'sent' : 'inbox'}")
+    Rails.logger.info("Processing Email from: #{@processed_mail.original_sender} : inbox #{@inbox.id} : message_id #{@processed_mail.message_id}")
 
     if @from_sent_folder
       # Sent folder: only process if sender matches this channel's email
-      if sent_from_this_channel?
-        process_outgoing_email
-      else
-        Rails.logger.info("[IMAP::SENT_SKIP] Skipping sent email from #{@processed_mail.original_sender} — doesn't match channel #{@channel.email}")
-      end
+      return unless sent_from_this_channel?
+
+      process_outgoing_email
     elsif sent_from_this_channel?
       # Inbox email from our own address (e.g., bounce or copy) — treat as outgoing
       process_outgoing_email
@@ -177,17 +175,11 @@ class Imap::ImapMailbox
   end
 
   def process_outgoing_email
-    Rails.logger.info("[IMAP::OUTGOING] Processing outgoing email from #{@processed_mail.original_sender} to #{@processed_mail.to&.first} | in_reply_to: #{in_reply_to} | references: #{@inbound_mail.references&.inspect}")
-
     ActiveRecord::Base.transaction do
       find_or_create_contact_from_recipients
-      if @contact.nil?
-        Rails.logger.info("[IMAP::OUTGOING] No contact found/created for recipient #{@processed_mail.to&.first}, skipping")
-        return
-      end
+      return if @contact.nil?
 
       find_or_create_conversation
-      Rails.logger.info("[IMAP::OUTGOING] Conversation #{@conversation.id} (#{@conversation.previously_new_record? ? 'NEW' : 'EXISTING'}) for message #{@processed_mail.message_id}")
       create_outgoing_message
       add_attachments_to_message
     end
