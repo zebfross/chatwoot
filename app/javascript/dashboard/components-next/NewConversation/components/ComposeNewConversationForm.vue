@@ -418,7 +418,6 @@ const shouldShowMessageEditor = computed(() => {
             @click="
               isGroupMode = true;
               selectedInternalAgent = null;
-              emit('clearSelectedContact');
             "
           >
             {{ t('COMPOSE_NEW_CONVERSATION.FORM.CONVERSATION_TYPE.GROUP') }}
