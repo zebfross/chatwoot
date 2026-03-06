@@ -2,7 +2,11 @@
 import { computed, useTemplateRef, ref, onMounted } from 'vue';
 import { Letter } from 'vue-letter';
 import { sanitizeTextForRender } from '@chatwoot/utils';
-import { allowedCssProperties } from 'lettersanitizer';
+import { allowedCssProperties as baseCssProperties } from 'lettersanitizer';
+
+const allowedCssProperties = baseCssProperties.filter(
+  p => !['color', 'background-color', 'background'].includes(p)
+);
 
 import Icon from 'next/icon/Icon.vue';
 import { EmailQuoteExtractor } from 'dashboard/helper/emailQuoteExtractor.js';
