@@ -14,14 +14,18 @@ class Imap::ImapMailbox
 
     Rails.logger.info("Processing Email from: #{@processed_mail.original_sender} : inbox #{@inbox.id} : message_id #{@processed_mail.message_id}")
 
-    # Skip processing email if it belongs to any of the edge cases
-    return unless incoming_email_from_valid_email?
+    if sent_by_agent?
+      process_outgoing_email
+    else
+      # Skip processing email if it belongs to any of the edge cases
+      return unless incoming_email_from_valid_email?
 
-    ActiveRecord::Base.transaction do
-      find_or_create_contact
-      find_or_create_conversation
-      create_message
-      add_attachments_to_message
+      ActiveRecord::Base.transaction do
+        find_or_create_contact
+        find_or_create_conversation
+        create_message
+        add_attachments_to_message
+      end
     end
   end
 
@@ -107,6 +111,75 @@ class Imap::ImapMailbox
         }
       }
     )
+  end
+
+  def sent_by_agent?
+    sender_email = @processed_mail.original_sender&.downcase
+    return false if sender_email.blank?
+
+    # Check if sender matches the inbox email
+    return true if sender_email == @channel.email&.downcase
+    return true if sender_email == @channel.imap_login&.downcase
+
+    # Check if sender is an agent on this account
+    @account.users.exists?(email: sender_email)
+  end
+
+  def find_agent_by_email
+    sender_email = @processed_mail.original_sender&.downcase
+    @account.users.find_by(email: sender_email)
+  end
+
+  def find_or_create_contact_from_recipients
+    # For sent emails, the contact is the recipient, not the sender
+    recipient_email = @processed_mail.to&.first
+    return if recipient_email.blank?
+
+    @contact = @inbox.contacts.from_email(recipient_email)
+    if @contact.present?
+      @contact_inbox = ContactInbox.find_by(inbox: @inbox, contact: @contact)
+    else
+      @contact_inbox = ::ContactInboxWithContactBuilder.new(
+        source_id: recipient_email,
+        inbox: @inbox,
+        contact_attributes: {
+          name: recipient_email.split('@').first.capitalize,
+          email: recipient_email
+        }
+      ).perform
+      @contact = @contact_inbox.contact
+    end
+  end
+
+  def create_outgoing_message
+    return if @conversation.messages.find_by(source_id: processed_mail.message_id).present?
+
+    agent = find_agent_by_email
+    @message = @conversation.messages.create!(
+      account_id: @conversation.account_id,
+      sender: agent,
+      content: mail_content&.truncate(150_000),
+      inbox_id: @conversation.inbox_id,
+      message_type: 'outgoing',
+      content_type: 'incoming_email',
+      source_id: processed_mail.message_id,
+      content_attributes: {
+        email: processed_mail.serialized_data,
+        cc_email: processed_mail.cc,
+        bcc_email: processed_mail.bcc
+      }
+    )
+  end
+
+  def process_outgoing_email
+    ActiveRecord::Base.transaction do
+      find_or_create_contact_from_recipients
+      return if @contact.nil?
+
+      find_or_create_conversation
+      create_outgoing_message
+      add_attachments_to_message
+    end
   end
 
   def find_or_create_contact

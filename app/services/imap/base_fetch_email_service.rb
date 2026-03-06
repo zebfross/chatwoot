@@ -9,9 +9,10 @@ class Imap::BaseFetchEmailService
 
   def perform
     inbound_emails = fetch_emails
+    sent_emails = fetch_sent_emails
     terminate_imap_connection
 
-    inbound_emails
+    inbound_emails + sent_emails
   end
 
   private
@@ -103,6 +104,25 @@ class Imap::BaseFetchEmailService
   # Return <message set>
   def fetch_available_mail_sequence_numbers
     imap_client.search(['SINCE', since])
+  end
+
+  def fetch_sent_emails
+    sent_folder = find_sent_folder
+    return [] if sent_folder.nil?
+
+    imap_client.select(sent_folder)
+    fetch_mail_for_channel
+  rescue Net::IMAP::NoResponseError => e
+    Rails.logger.info "[IMAP::FETCH_EMAIL_SERVICE] Could not access sent folder for #{channel.email}: #{e.message}"
+    []
+  end
+
+  def find_sent_folder
+    sent_names = ['[Gmail]/Sent Mail', '[Google Mail]/Sent Mail', 'Sent', 'INBOX.Sent', 'Sent Items', 'Sent Messages']
+    mailboxes = imap_client.list('', '*') || []
+    mailbox_names = mailboxes.map(&:name)
+
+    sent_names.find { |name| mailbox_names.include?(name) }
   end
 
   def build_imap_client
