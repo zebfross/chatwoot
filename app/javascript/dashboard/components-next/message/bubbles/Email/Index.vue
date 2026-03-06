@@ -2,11 +2,7 @@
 import { computed, useTemplateRef, ref, onMounted } from 'vue';
 import { Letter } from 'vue-letter';
 import { sanitizeTextForRender } from '@chatwoot/utils';
-import { allowedCssProperties as baseCssProperties } from 'lettersanitizer';
-
-const allowedCssProperties = baseCssProperties.filter(
-  p => !['color', 'background-color', 'background'].includes(p)
-);
+import { allowedCssProperties } from 'lettersanitizer';
 
 import Icon from 'next/icon/Icon.vue';
 import { EmailQuoteExtractor } from 'dashboard/helper/emailQuoteExtractor.js';
@@ -122,7 +118,10 @@ const handleSeeOriginal = () => {
         'border-b border-n-slate-8/20': isOutgoing,
       }"
     />
-    <section ref="contentContainer" class="p-3">
+    <section
+      ref="contentContainer"
+      class="p-3 bg-white rounded-b-xl text-black"
+    >
       <div
         :class="{
           'max-h-[400px] overflow-hidden relative': !isExpanded && isExpandable,
@@ -131,16 +130,10 @@ const handleSeeOriginal = () => {
       >
         <div
           v-if="isExpandable && !isExpanded"
-          class="absolute left-0 right-0 bottom-0 h-40 px-8 flex items-end"
-          :class="{
-            'bg-gradient-to-t from-n-slate-4 via-n-slate-4 via-20% to-transparent':
-              isIncoming,
-            'bg-gradient-to-t from-n-solid-blue via-n-solid-blue via-20% to-transparent':
-              isOutgoing,
-          }"
+          class="absolute left-0 right-0 bottom-0 h-40 px-8 flex items-end bg-gradient-to-t from-white via-white via-20% to-transparent"
         >
           <button
-            class="text-n-slate-12 py-2 px-8 mx-auto text-center flex items-center gap-2"
+            class="text-black py-2 px-8 mx-auto text-center flex items-center gap-2"
             @click="isExpanded = true"
           >
             <Icon icon="i-lucide-maximize-2" />
@@ -180,7 +173,7 @@ const handleSeeOriginal = () => {
         </template>
         <button
           v-if="hasQuotedMessage"
-          class="text-n-slate-11 px-1 leading-none text-sm bg-n-alpha-black2 text-center flex items-center gap-1 mt-2"
+          class="text-gray-500 px-1 leading-none text-sm bg-gray-100 text-center flex items-center gap-1 mt-2"
           @click="showQuotedMessage = !showQuotedMessage"
         >
           <template v-if="showQuotedMessage">
