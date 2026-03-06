@@ -247,7 +247,7 @@ export const createGroupConversation = async ({
 }) => {
   const { data } = await ConversationApi.create({
     inbox_id: inboxId,
-    conversation_type: 'group',
+    conversation_type: 'group_conversation',
     participant_user_ids: participantUserIds,
     message,
     assignee_id: assigneeId,

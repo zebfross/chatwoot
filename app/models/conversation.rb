@@ -64,7 +64,7 @@ class Conversation < ApplicationRecord
 
   validates :account_id, presence: true
   validates :inbox_id, presence: true
-  validates :contact_id, presence: true, unless: :group?
+  validates :contact_id, presence: true, unless: :group_conversation?
   before_validation :validate_additional_attributes
   before_validation :reset_agent_bot_when_assignee_present
   validates :additional_attributes, jsonb_attributes_length: true
@@ -74,7 +74,7 @@ class Conversation < ApplicationRecord
 
   enum status: { open: 0, resolved: 1, pending: 2, snoozed: 3 }
   enum priority: { low: 0, medium: 1, high: 2, urgent: 3 }
-  enum conversation_type: { direct: 0, group: 1 }
+  enum conversation_type: { direct: 0, group_conversation: 1 }
 
   scope :unassigned, -> { where(assignee_id: nil) }
   scope :assigned, -> { where.not(assignee_id: nil) }

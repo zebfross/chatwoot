@@ -13,7 +13,7 @@ RSpec.describe ConversationBuilder do
       ActionController::Parameters.new(
         account_id: account.id,
         inbox_id: inbox.id,
-        conversation_type: 'group',
+        conversation_type: 'group_conversation',
         assignee_id: user1.id,
         participant_user_ids: [user1.id, user2.id, user3.id]
       )
@@ -23,7 +23,7 @@ RSpec.describe ConversationBuilder do
       conversation = described_class.new(params: params).perform
 
       expect(conversation).to be_persisted
-      expect(conversation.group?).to be true
+      expect(conversation.group_conversation?).to be true
       expect(conversation.contact_id).to be_nil
       expect(conversation.participants.count).to eq(3)
       expect(conversation.participants).to include(user1, user2, user3)

@@ -13,7 +13,7 @@ RSpec.describe Conversations::PermissionFilterService do
       conv = Conversation.create!(
         account: account,
         inbox: inbox,
-        conversation_type: :group,
+        conversation_type: :group_conversation,
         assignee: user1
       )
       conv.conversation_participants.create!(user: user1)

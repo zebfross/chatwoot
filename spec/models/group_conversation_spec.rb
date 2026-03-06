@@ -13,11 +13,11 @@ RSpec.describe 'Group Conversations' do
       conversation = Conversation.create!(
         account: account,
         inbox: inbox,
-        conversation_type: :group,
+        conversation_type: :group_conversation,
         assignee: user1
       )
       expect(conversation).to be_persisted
-      expect(conversation.group?).to be true
+      expect(conversation.group_conversation?).to be true
       expect(conversation.contact_id).to be_nil
     end
 
@@ -35,7 +35,7 @@ RSpec.describe 'Group Conversations' do
       conversation = Conversation.create!(
         account: account,
         inbox: inbox,
-        conversation_type: :group,
+        conversation_type: :group_conversation,
         assignee: user1
       )
       conversation.conversation_participants.create!(user: user1)
@@ -64,10 +64,10 @@ RSpec.describe 'Group Conversations' do
       conversation = Conversation.create!(
         account: account,
         inbox: inbox,
-        conversation_type: :group,
+        conversation_type: :group_conversation,
         assignee: user1
       )
-      expect(conversation.group?).to be true
+      expect(conversation.group_conversation?).to be true
       expect(conversation.direct?).to be false
     end
   end

@@ -46,7 +46,7 @@ const isInternalInbox = computed(() => {
 });
 
 const isGroupConversation = computed(
-  () => props.conversation?.conversation_type === 'group'
+  () => props.conversation?.conversation_type === 'group_conversation'
 );
 
 const groupDisplayName = computed(() => {

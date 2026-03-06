@@ -12,7 +12,7 @@ class ConversationBuilder
   private
 
   def group_conversation?
-    params[:conversation_type] == 'group'
+    params[:conversation_type] == 'group_conversation'
   end
 
   def look_up_exising_conversation
@@ -30,7 +30,7 @@ class ConversationBuilder
     conversation = ::Conversation.create!(
       account_id: params[:account_id],
       inbox_id: inbox.id,
-      conversation_type: :group,
+      conversation_type: :group_conversation,
       status: :open,
       assignee_id: params[:assignee_id]
     )

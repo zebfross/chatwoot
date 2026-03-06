@@ -318,7 +318,7 @@ const handleSendMessage = async () => {
       const success = await emit('createGroupConversation', {
         payload: {
           inboxId: props.targetInbox.id,
-          conversationType: 'group',
+          conversationType: 'group_conversation',
           participantUserIds: selectedGroupAgents.value.map(a => a.id),
           message: { content: state.message },
         },

@@ -154,7 +154,7 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   private
 
   def group_conversation?
-    params[:conversation_type] == 'group'
+    params[:conversation_type] == 'group_conversation'
   end
 
   def permitted_update_params

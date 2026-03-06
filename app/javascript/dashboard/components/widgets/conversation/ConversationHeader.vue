@@ -58,7 +58,7 @@ const backButtonUrl = computed(() => {
 });
 
 const isGroupConversation = computed(
-  () => props.chat?.conversation_type === 'group'
+  () => props.chat?.conversation_type === 'group_conversation'
 );
 
 const currentUser = computed(() => store.getters.getCurrentUser);

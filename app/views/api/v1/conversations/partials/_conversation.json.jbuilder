@@ -64,7 +64,7 @@ json.last_activity_at conversation.last_activity_at.to_i
 json.priority conversation.priority
 json.waiting_since conversation.waiting_since.to_i.to_i
 json.sla_policy_id conversation.sla_policy_id
-if conversation.group?
+if conversation.group_conversation?
   json.participants conversation.participants do |participant|
     json.id participant.id
     json.name participant.available_name || participant.name
