@@ -109,8 +109,8 @@ journalctl -u chatwoot-worker.1.service -f
 # Recent errors
 journalctl -u chatwoot-web.1.service --since '30 minutes ago' --no-pager | grep -i error
 
-# Specific request errors (500s)
-journalctl -u chatwoot-web.1.service --since '1 hour ago' --no-pager | grep '500 Internal'
+# Error details with full stack traces (most useful for debugging 500s)
+journalctl -u chatwoot-web.1.service --since '10 minutes ago' --no-pager | grep -B2 -A15 '500\|FATAL\|Error'
 ```
 
 ## Pushing to develop
