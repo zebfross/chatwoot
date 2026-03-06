@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useVuelidate } from '@vuelidate/core';
 import { required, requiredIf } from '@vuelidate/validators';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
@@ -18,6 +19,7 @@ import {
 
 import ContactSelector from './ContactSelector.vue';
 import AgentSelector from './AgentSelector.vue';
+import MultiAgentSelector from './MultiAgentSelector.vue';
 import InboxSelector from './InboxSelector.vue';
 import EmailOptions from './EmailOptions.vue';
 import MessageEditor from './MessageEditor.vue';
@@ -50,8 +52,10 @@ const emit = defineEmits([
   'clearSelectedContact',
   'createConversation',
   'selectAgent',
+  'createGroupConversation',
 ]);
 
+const { t } = useI18n();
 const inboxesList = useMapGetter('inboxes/getInboxes');
 
 const DEFAULT_FORMATTING = 'Context::Default';
@@ -59,6 +63,8 @@ const DEFAULT_FORMATTING = 'Context::Default';
 const showContactsDropdown = ref(false);
 const showInboxesDropdown = ref(false);
 const selectedInternalAgent = ref(null);
+const isGroupMode = ref(false);
+const selectedGroupAgents = ref([]);
 const showCcEmailsDropdown = ref(false);
 const showBccEmailsDropdown = ref(false);
 
@@ -108,7 +114,7 @@ const effectiveChannelType = computed(() =>
 );
 
 const validationRules = computed(() => ({
-  selectedContact: { required },
+  selectedContact: { required: requiredIf(!isGroupMode.value) },
   targetInbox: { required },
   message: { required: requiredIf(!inboxTypes.value.isWhatsapp) },
   subject: { required: requiredIf(inboxTypes.value.isEmail) },
@@ -246,6 +252,8 @@ const removeTargetInbox = value => {
   stripMessageFormatting(DEFAULT_FORMATTING);
 
   selectedInternalAgent.value = null;
+  isGroupMode.value = false;
+  selectedGroupAgents.value = [];
   emit('updateTargetInbox', value);
   state.attachedFiles = [];
 };
@@ -304,6 +312,28 @@ const clearForm = () => {
 };
 
 const handleSendMessage = async () => {
+  if (isGroupMode.value) {
+    if (selectedGroupAgents.value.length === 0 || !props.targetInbox) return;
+    try {
+      const success = await emit('createGroupConversation', {
+        payload: {
+          inboxId: props.targetInbox.id,
+          conversationType: 'group',
+          participantUserIds: selectedGroupAgents.value.map(a => a.id),
+          message: { content: state.message },
+        },
+      });
+      if (success) {
+        clearForm();
+        isGroupMode.value = false;
+        selectedGroupAgents.value = [];
+      }
+    } catch (error) {
+      // Form will not be cleared if conversation creation fails
+    }
+    return;
+  }
+
   const isValid = await v$.value.$validate();
   if (!isValid) return;
 
@@ -362,13 +392,54 @@ const shouldShowMessageEditor = computed(() => {
     class="w-[42rem] divide-y divide-n-strong overflow-visible transition-all duration-300 ease-in-out top-full flex flex-col bg-n-alpha-3 border border-n-strong shadow-sm backdrop-blur-[100px] rounded-xl min-w-0 max-h-[calc(100vh-8rem)]"
   >
     <div class="flex-1 overflow-y-auto divide-y divide-n-strong">
-      <AgentSelector
-        v-if="isInternal"
-        :selected-agent="selectedInternalAgent"
-        :has-errors="validationStates.isContactInvalid"
-        @select-agent="handleAgentSelect"
-        @clear-agent="clearSelectedAgent"
-      />
+      <div v-if="isInternal" class="flex flex-col">
+        <div class="flex items-center gap-2 px-4 pt-3 pb-1">
+          <button
+            class="text-xs font-medium px-2 py-1 rounded-md transition-colors"
+            :class="
+              !isGroupMode
+                ? 'bg-n-brand text-white'
+                : 'bg-n-alpha-2 text-n-slate-11 hover:bg-n-alpha-3'
+            "
+            @click="
+              isGroupMode = false;
+              selectedGroupAgents = [];
+            "
+          >
+            {{ t('COMPOSE_NEW_CONVERSATION.FORM.CONVERSATION_TYPE.DIRECT') }}
+          </button>
+          <button
+            class="text-xs font-medium px-2 py-1 rounded-md transition-colors"
+            :class="
+              isGroupMode
+                ? 'bg-n-brand text-white'
+                : 'bg-n-alpha-2 text-n-slate-11 hover:bg-n-alpha-3'
+            "
+            @click="
+              isGroupMode = true;
+              selectedInternalAgent = null;
+              emit('clearSelectedContact');
+            "
+          >
+            {{ t('COMPOSE_NEW_CONVERSATION.FORM.CONVERSATION_TYPE.GROUP') }}
+          </button>
+        </div>
+        <MultiAgentSelector
+          v-if="isGroupMode"
+          v-model:selected-agents="selectedGroupAgents"
+          :has-errors="
+            selectedGroupAgents.length === 0 &&
+            validationStates.isContactInvalid
+          "
+        />
+        <AgentSelector
+          v-else
+          :selected-agent="selectedInternalAgent"
+          :has-errors="validationStates.isContactInvalid"
+          @select-agent="handleAgentSelect"
+          @clear-agent="clearSelectedAgent"
+        />
+      </div>
       <ContactSelector
         v-else
         :contacts="contacts"

@@ -4,7 +4,7 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   include HmacConcern
 
   before_action :conversation, except: [:index, :meta, :search, :create, :filter]
-  before_action :inbox, :contact, :contact_inbox, only: [:create]
+  before_action :inbox, :contact, :contact_inbox, only: [:create], unless: :group_conversation?
 
   ATTACHMENT_RESULTS_PER_PAGE = 100
 
@@ -38,7 +38,16 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
 
   def create
     ActiveRecord::Base.transaction do
-      @conversation = ConversationBuilder.new(params: params, contact_inbox: @contact_inbox).perform
+      if group_conversation?
+        group_params = params.permit(:inbox_id, :conversation_type, :assignee_id, participant_user_ids: [], message: [:content])
+        group_params[:account_id] = Current.account.id
+        group_params[:assignee_id] ||= Current.user.id
+        # Always include creator as participant
+        group_params[:participant_user_ids] = (Array(group_params[:participant_user_ids]).map(&:to_i) | [Current.user.id])
+        @conversation = ConversationBuilder.new(params: group_params).perform
+      else
+        @conversation = ConversationBuilder.new(params: params, contact_inbox: @contact_inbox).perform
+      end
       Messages::MessageBuilder.new(Current.user, @conversation, params[:message]).perform if params[:message].present?
     end
   end
@@ -143,6 +152,10 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   end
 
   private
+
+  def group_conversation?
+    params[:conversation_type] == 'group'
+  end
 
   def permitted_update_params
     # TODO: Move the other conversation attributes to this method and remove specific endpoints for each attribute

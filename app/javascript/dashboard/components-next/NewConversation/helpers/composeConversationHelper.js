@@ -3,6 +3,7 @@ import { getInboxIconByType } from 'dashboard/helper/inbox';
 import camelcaseKeys from 'camelcase-keys';
 import ContactAPI from 'dashboard/api/contacts';
 import InternalContactsAPI from 'dashboard/api/internalContacts';
+import ConversationApi from 'dashboard/api/conversations';
 
 const CHANNEL_PRIORITY = {
   'Channel::Email': 1,
@@ -236,6 +237,22 @@ export const createNewContact = async input => {
 export const fetchInternalContacts = async () => {
   const { data } = await InternalContactsAPI.get();
   return camelcaseKeys(data, { deep: true });
+};
+
+export const createGroupConversation = async ({
+  inboxId,
+  participantUserIds,
+  message,
+  assigneeId,
+}) => {
+  const { data } = await ConversationApi.create({
+    inbox_id: inboxId,
+    conversation_type: 'group',
+    participant_user_ids: participantUserIds,
+    message,
+    assignee_id: assigneeId,
+  });
+  return data;
 };
 
 export const fetchContactableInboxes = async contactId => {

@@ -57,16 +57,37 @@ const backButtonUrl = computed(() => {
   });
 });
 
+const isGroupConversation = computed(
+  () => props.chat?.conversation_type === 'group'
+);
+
+const currentUser = computed(() => store.getters.getCurrentUser);
+
 const isHMACVerified = computed(() => {
-  if (!isAWebWidgetInbox.value) {
-    return true;
-  }
-  return chatMetadata.value.hmac_verified;
+  if (isGroupConversation.value) return true;
+  if (!isAWebWidgetInbox.value) return true;
+  return chatMetadata.value?.hmac_verified;
 });
 
-const currentContact = computed(() =>
-  store.getters['contacts/getContact'](props.chat.meta.sender.id)
-);
+const groupDisplayName = computed(() => {
+  const participants = props.chat?.participants || [];
+  const others = participants.filter(p => p.id !== currentUser.value?.id);
+  if (others.length === 0) return 'Group';
+  const names = others.map(p => p.name?.split(' ')[0]);
+  if (names.length <= 3) return names.join(', ');
+  return `${names.slice(0, 3).join(', ')} +${names.length - 3}`;
+});
+
+const currentContact = computed(() => {
+  if (isGroupConversation.value) {
+    return {
+      name: groupDisplayName.value,
+      thumbnail: '',
+      availability_status: '',
+    };
+  }
+  return store.getters['contacts/getContact'](props.chat.meta?.sender?.id);
+});
 
 const isSnoozed = computed(
   () => currentChat.value.status === wootConstants.STATUS_TYPE.SNOOZED

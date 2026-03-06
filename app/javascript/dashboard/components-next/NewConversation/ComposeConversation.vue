@@ -18,6 +18,7 @@ import {
   processContactableInboxes,
   mergeInboxDetails,
   fetchInternalContacts,
+  createGroupConversation as createGroupConversationApi,
 } from 'dashboard/components-next/NewConversation/helpers/composeConversationHelper';
 import wootConstants from 'dashboard/constants/globals';
 
@@ -210,6 +211,32 @@ const discardCompose = () => {
   closeCompose();
 };
 
+const createGroupConversation = async ({ payload }) => {
+  try {
+    const data = await createGroupConversationApi({
+      inboxId: payload.inboxId,
+      participantUserIds: payload.participantUserIds,
+      message: payload.message,
+      assigneeId: currentUser.value.id,
+    });
+    const action = {
+      type: 'link',
+      to: `/app/accounts/${data.account_id}/conversations/${data.id}`,
+      message: t('COMPOSE_NEW_CONVERSATION.FORM.GO_TO_CONVERSATION'),
+    };
+    discardCompose();
+    useAlert(t('COMPOSE_NEW_CONVERSATION.FORM.SUCCESS_MESSAGE'), action);
+    return true;
+  } catch (error) {
+    useAlert(
+      error instanceof ExceptionWithMessage
+        ? error.data
+        : t('COMPOSE_NEW_CONVERSATION.FORM.ERROR_MESSAGE')
+    );
+    return false;
+  }
+};
+
 const createConversation = async ({ payload, isFromWhatsApp }) => {
   try {
     const data = await store.dispatch('contactConversations/create', {
@@ -341,6 +368,7 @@ useKeyboardEvents(keyboardEvents);
         @clear-selected-contact="clearSelectedContact"
         @create-conversation="createConversation"
         @select-agent="handleAgentSelected"
+        @create-group-conversation="createGroupConversation"
         @discard="discardCompose"
       />
     </div>

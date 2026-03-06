@@ -1,11 +1,19 @@
 class ConversationBuilder
-  pattr_initialize [:params!, :contact_inbox!]
+  pattr_initialize [:params!, :contact_inbox]
 
   def perform
-    look_up_exising_conversation || create_new_conversation
+    if group_conversation?
+      create_group_conversation
+    else
+      look_up_exising_conversation || create_new_conversation
+    end
   end
 
   private
+
+  def group_conversation?
+    params[:conversation_type] == 'group'
+  end
 
   def look_up_exising_conversation
     return unless @contact_inbox.inbox.lock_to_single_conversation?
@@ -15,6 +23,22 @@ class ConversationBuilder
 
   def create_new_conversation
     ::Conversation.create!(conversation_params)
+  end
+
+  def create_group_conversation
+    inbox = Account.find(params[:account_id]).inboxes.find(params[:inbox_id])
+    conversation = ::Conversation.create!(
+      account_id: params[:account_id],
+      inbox_id: inbox.id,
+      conversation_type: :group,
+      status: :open,
+      assignee_id: params[:assignee_id]
+    )
+    participant_ids = params[:participant_user_ids] || []
+    participant_ids.each do |user_id|
+      conversation.conversation_participants.create!(user_id: user_id)
+    end
+    conversation
   end
 
   def conversation_params

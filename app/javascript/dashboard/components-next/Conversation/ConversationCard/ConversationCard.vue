@@ -45,7 +45,30 @@ const isInternalInbox = computed(() => {
   return ct === 'Channel::Internal';
 });
 
+const isGroupConversation = computed(
+  () => props.conversation?.conversation_type === 'group'
+);
+
+const groupDisplayName = computed(() => {
+  const participants = props.conversation?.participants || [];
+  const otherParticipants = participants.filter(
+    p => p.id !== currentUser.value?.id
+  );
+  if (otherParticipants.length === 0) return 'Group';
+  const names = otherParticipants.map(p => p.name?.split(' ')[0]);
+  if (names.length <= 3) return names.join(', ');
+  return `${names.slice(0, 3).join(', ')} +${names.length - 3}`;
+});
+
 const currentContact = computed(() => {
+  // For group conversations, show participant names
+  if (isGroupConversation.value) {
+    return {
+      name: groupDisplayName.value,
+      thumbnail: '',
+      availabilityStatus: '',
+    };
+  }
   // For internal conversations, show the other agent's name
   const assignee = props.conversation?.meta?.assignee;
   if (
