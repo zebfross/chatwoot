@@ -211,6 +211,14 @@ const handleSeeOriginal = () => {
 // Tailwind resets break the rendering of google drive link in Gmail messages
 // This fixes it using https://developer.mozilla.org/en-US/docs/Web/CSS/Attribute_selectors
 
+.letter-render {
+  color: #000 !important;
+
+  * {
+    color: inherit;
+  }
+}
+
 .letter-render [class*='gmail_drive_chip'] {
   box-sizing: initial;
   @apply bg-n-slate-4 border-n-slate-6 rounded-md !important;
