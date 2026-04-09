@@ -11,10 +11,7 @@ class Internal::ShadowContactService
   end
 
   def self.ensure_contact_inbox(contact:, inbox:)
-    ContactInbox.find_or_create_by!(
-      contact_id: contact.id,
-      inbox_id: inbox.id,
-      source_id: SecureRandom.uuid
-    )
+    ContactInbox.find_by(contact_id: contact.id, inbox_id: inbox.id) ||
+      ContactInbox.create!(contact_id: contact.id, inbox_id: inbox.id, source_id: SecureRandom.uuid)
   end
 end
