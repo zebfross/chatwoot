@@ -89,7 +89,30 @@ const isInternalInbox = computed(() => {
   return ct === 'Channel::Internal';
 });
 
+const isGroupConversation = computed(
+  () => props.chat?.conversation_type === 'group_conversation'
+);
+
+const groupDisplayName = computed(() => {
+  const customName = props.chat?.additional_attributes?.group_name;
+  if (customName) return customName;
+  const participants = props.chat?.participants || [];
+  const others = participants.filter(p => p.id !== currentUser.value?.id);
+  if (others.length === 0) return 'Group';
+  const names = others.map(p => p.name?.split(' ')[0]);
+  if (names.length <= 3) return names.join(', ');
+  return `${names.slice(0, 3).join(', ')} +${names.length - 3}`;
+});
+
 const currentContact = computed(() => {
+  if (isGroupConversation.value) {
+    return {
+      name: groupDisplayName.value,
+      thumbnail: '',
+      availability_status: '',
+    };
+  }
+
   const contact = senderId.value
     ? store.getters['contacts/getContact'](senderId.value)
     : {};
