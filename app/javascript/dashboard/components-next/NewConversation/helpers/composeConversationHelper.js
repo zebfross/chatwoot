@@ -244,6 +244,7 @@ export const createGroupConversation = async ({
   participantUserIds,
   message,
   assigneeId,
+  name,
 }) => {
   const { data } = await ConversationApi.create({
     inbox_id: inboxId,
@@ -251,6 +252,7 @@ export const createGroupConversation = async ({
     participant_user_ids: participantUserIds,
     message,
     assignee_id: assigneeId,
+    name,
   });
   return data;
 };

@@ -657,6 +657,10 @@
       "CONVERSATION_TYPE": {
         "DIRECT": "Direct",
         "GROUP": "Group"
+      },
+      "GROUP_NAME": {
+        "LABEL": "Name:",
+        "PLACEHOLDER": "Optional group name (e.g. Marketing)"
       }
     }
   }

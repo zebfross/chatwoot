@@ -39,7 +39,7 @@ class Api::V1::Accounts::ConversationsController < Api::V1::Accounts::BaseContro
   def create
     ActiveRecord::Base.transaction do
       if group_conversation?
-        group_params = params.permit(:inbox_id, :conversation_type, :assignee_id, participant_user_ids: [], message: [:content])
+        group_params = params.permit(:inbox_id, :conversation_type, :assignee_id, :name, participant_user_ids: [], message: [:content])
         group_params[:account_id] = Current.account.id
         group_params[:assignee_id] ||= Current.user.id
         # Always include creator as participant

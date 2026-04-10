@@ -50,6 +50,8 @@ const isGroupConversation = computed(
 );
 
 const groupDisplayName = computed(() => {
+  const customName = props.conversation?.additional_attributes?.group_name;
+  if (customName) return customName;
   const participants = props.conversation?.participants || [];
   const otherParticipants = participants.filter(
     p => p.id !== currentUser.value?.id

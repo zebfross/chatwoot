@@ -70,6 +70,8 @@ const isHMACVerified = computed(() => {
 });
 
 const groupDisplayName = computed(() => {
+  const customName = props.chat?.additional_attributes?.group_name;
+  if (customName) return customName;
   const participants = props.chat?.participants || [];
   const others = participants.filter(p => p.id !== currentUser.value?.id);
   if (others.length === 0) return 'Group';

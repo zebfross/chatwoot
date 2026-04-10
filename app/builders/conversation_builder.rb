@@ -27,12 +27,15 @@ class ConversationBuilder
 
   def create_group_conversation
     inbox = Account.find(params[:account_id]).inboxes.find(params[:inbox_id])
+    additional_attributes = {}
+    additional_attributes['group_name'] = params[:name] if params[:name].present?
     conversation = ::Conversation.create!(
       account_id: params[:account_id],
       inbox_id: inbox.id,
       conversation_type: :group_conversation,
       status: :open,
-      assignee_id: params[:assignee_id]
+      assignee_id: params[:assignee_id],
+      additional_attributes: additional_attributes
     )
     participant_ids = params[:participant_user_ids] || []
     participant_ids.each do |user_id|

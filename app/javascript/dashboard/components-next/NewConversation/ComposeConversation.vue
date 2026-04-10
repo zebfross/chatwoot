@@ -218,6 +218,7 @@ const createGroupConversation = async ({ payload }) => {
       participantUserIds: payload.participantUserIds,
       message: payload.message,
       assigneeId: currentUser.value.id,
+      name: payload.name,
     });
     const action = {
       type: 'link',

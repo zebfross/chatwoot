@@ -65,6 +65,7 @@ const showInboxesDropdown = ref(false);
 const selectedInternalAgent = ref(null);
 const isGroupMode = ref(false);
 const selectedGroupAgents = ref([]);
+const groupName = ref('');
 const showCcEmailsDropdown = ref(false);
 const showBccEmailsDropdown = ref(false);
 
@@ -321,12 +322,14 @@ const handleSendMessage = async () => {
           conversationType: 'group_conversation',
           participantUserIds: selectedGroupAgents.value.map(a => a.id),
           message: { content: state.message },
+          name: groupName.value.trim() || undefined,
         },
       });
       if (success) {
         clearForm();
         isGroupMode.value = false;
         selectedGroupAgents.value = [];
+        groupName.value = '';
       }
     } catch (error) {
       // Form will not be cleared if conversation creation fails
@@ -422,6 +425,23 @@ const shouldShowMessageEditor = computed(() => {
           >
             {{ t('COMPOSE_NEW_CONVERSATION.FORM.CONVERSATION_TYPE.GROUP') }}
           </button>
+        </div>
+        <div v-if="isGroupMode" class="px-4 py-3">
+          <div class="flex items-center w-full gap-3 min-h-7">
+            <label
+              class="text-sm font-medium text-n-slate-11 whitespace-nowrap"
+            >
+              {{ t('COMPOSE_NEW_CONVERSATION.FORM.GROUP_NAME.LABEL') }}
+            </label>
+            <input
+              v-model="groupName"
+              type="text"
+              :placeholder="
+                t('COMPOSE_NEW_CONVERSATION.FORM.GROUP_NAME.PLACEHOLDER')
+              "
+              class="flex-1 min-w-0 text-sm bg-transparent border-none outline-none text-n-slate-12 placeholder:text-n-slate-10"
+            />
+          </div>
         </div>
         <MultiAgentSelector
           v-if="isGroupMode"
