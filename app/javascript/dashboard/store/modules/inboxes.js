@@ -201,12 +201,20 @@ export const actions = {
     }
   },
   get: async ({ commit }) => {
+    // eslint-disable-next-line no-console
+    console.log('[inboxes/get] start');
     commit(types.default.SET_INBOXES_UI_FLAG, { isFetching: true });
     try {
+      // eslint-disable-next-line no-console
+      console.log('[inboxes/get] calling InboxesAPI.get(true)');
       const response = await InboxesAPI.get(true);
+      // eslint-disable-next-line no-console
+      console.log('[inboxes/get] got response, payload size:', response?.data?.payload?.length);
       commit(types.default.SET_INBOXES_UI_FLAG, { isFetching: false });
       commit(types.default.SET_INBOXES, response.data.payload);
     } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('[inboxes/get] error:', error);
       commit(types.default.SET_INBOXES_UI_FLAG, { isFetching: false });
     }
   },

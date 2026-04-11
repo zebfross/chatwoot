@@ -36,18 +36,38 @@ class CacheEnabledApiClient extends ApiClient {
   }
 
   async getFromCache() {
+    const tag = `[CacheEnabledApiClient:${this.cacheModelName}]`;
     try {
       // IDB is not supported in Firefox private mode: https://bugzilla.mozilla.org/show_bug.cgi?id=781982
-      await this.dataManager.initDb();
-    } catch {
+      // eslint-disable-next-line no-console
+      console.log(`${tag} initDb start`);
+      // Guard initDb with a timeout so a blocked/hung IndexedDB upgrade
+      // can't freeze the whole fetch chain indefinitely.
+      await Promise.race([
+        this.dataManager.initDb(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('initDb timeout')), 3000)
+        ),
+      ]);
+      // eslint-disable-next-line no-console
+      console.log(`${tag} initDb done`);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(`${tag} initDb failed, falling back to network:`, err);
       return this.getFromNetwork();
     }
 
+    // eslint-disable-next-line no-console
+    console.log(`${tag} fetching cache_keys`);
     const { data } = await axios.get(
       `/api/v1/accounts/${this.accountIdFromRoute}/cache_keys`
     );
+    // eslint-disable-next-line no-console
+    console.log(`${tag} cache_keys response`, data);
     const cacheKeyFromApi = data.cache_keys[this.cacheModelName];
     const isCacheValid = await this.validateCacheKey(cacheKeyFromApi);
+    // eslint-disable-next-line no-console
+    console.log(`${tag} cache valid?`, isCacheValid);
 
     let localData = [];
     if (isCacheValid) {
@@ -55,6 +75,8 @@ class CacheEnabledApiClient extends ApiClient {
         modelName: this.cacheModelName,
       });
     }
+    // eslint-disable-next-line no-console
+    console.log(`${tag} local data length`, localData.length);
 
     if (localData.length === 0) {
       return this.refetchAndCommit(cacheKeyFromApi);
