@@ -2,14 +2,9 @@
 # Currently the file there is used only for search endpoint.
 # Everywhere else we use conversation builder in partials folder
 
-json.conversation_type conversation.conversation_type
 json.meta do
-  if conversation.contact.present?
-    json.sender do
-      json.partial! 'api/v1/models/contact', formats: [:json], resource: conversation.contact
-    end
-  else
-    json.sender nil
+  json.sender do
+    json.partial! 'api/v1/models/contact', formats: [:json], resource: conversation.contact
   end
   json.channel conversation.inbox.try(:channel_type)
   if conversation.assigned_entity.is_a?(AgentBot)
@@ -64,12 +59,4 @@ json.last_activity_at conversation.last_activity_at.to_i
 json.priority conversation.priority
 json.waiting_since conversation.waiting_since.to_i.to_i
 json.sla_policy_id conversation.sla_policy_id
-if conversation.group_conversation?
-  json.participants conversation.participants do |participant|
-    json.id participant.id
-    json.name participant.available_name || participant.name
-    json.thumbnail participant.avatar_url
-    json.availability_status participant.availability_status
-  end
-end
 json.partial! 'enterprise/api/v1/conversations/partials/conversation', conversation: conversation if ChatwootApp.enterprise?

@@ -12,7 +12,6 @@ export const INBOX_TYPES = {
   INSTAGRAM: 'Channel::Instagram',
   TIKTOK: 'Channel::Tiktok',
   VOICE: 'Channel::Voice',
-  INTERNAL: 'Channel::Internal',
 };
 
 export const TWILIO_CHANNEL_MEDIUM = {
@@ -32,7 +31,6 @@ const INBOX_ICON_MAP_FILL = {
   [INBOX_TYPES.INSTAGRAM]: 'i-ri-instagram-fill',
   [INBOX_TYPES.TIKTOK]: 'i-ri-tiktok-fill',
   [INBOX_TYPES.VOICE]: 'i-ri-phone-fill',
-  [INBOX_TYPES.INTERNAL]: 'i-ri-message-2-fill',
 };
 
 const DEFAULT_ICON_FILL = 'i-ri-chat-1-fill';
@@ -49,7 +47,6 @@ const INBOX_ICON_MAP_LINE = {
   [INBOX_TYPES.INSTAGRAM]: 'i-woot-instagram',
   [INBOX_TYPES.VOICE]: 'i-woot-voice',
   [INBOX_TYPES.TIKTOK]: 'i-woot-tiktok',
-  [INBOX_TYPES.INTERNAL]: 'i-lucide-message-circle',
 };
 
 const DEFAULT_ICON_LINE = 'i-ri-chat-1-line';
@@ -103,9 +100,6 @@ export const getReadableInboxByType = (type, phoneNumber) => {
     case INBOX_TYPES.VOICE:
       return 'voice';
 
-    case INBOX_TYPES.INTERNAL:
-      return 'internal';
-
     default:
       return 'chat';
   }
@@ -150,9 +144,6 @@ export const getInboxClassByType = (type, phoneNumber) => {
 
     case INBOX_TYPES.VOICE:
       return 'phone';
-
-    case INBOX_TYPES.INTERNAL:
-      return 'message-circle';
 
     default:
       return 'chat';

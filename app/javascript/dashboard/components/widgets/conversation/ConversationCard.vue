@@ -77,62 +77,10 @@ const assignee = computed(() => chatMetadata.value.assignee || {});
 
 const senderId = computed(() => chatMetadata.value.sender?.id);
 
-const currentUser = useMapGetter('getCurrentUser');
-
-const chatInbox = computed(() => {
-  const inboxId = props.chat?.inbox_id;
-  return inboxId ? inboxesList.value.find(i => i.id === inboxId) || {} : {};
-});
-
-const isInternalInbox = computed(() => {
-  const ct = chatInbox.value?.channel_type || chatInbox.value?.channelType;
-  return ct === 'Channel::Internal';
-});
-
-const isGroupConversation = computed(
-  () => props.chat?.conversation_type === 'group_conversation'
-);
-
-const groupDisplayName = computed(() => {
-  const customName = props.chat?.additional_attributes?.group_name;
-  if (customName) return customName;
-  const participants = props.chat?.participants || [];
-  const others = participants.filter(p => p.id !== currentUser.value?.id);
-  if (others.length === 0) return 'Group';
-  const names = others.map(p => p.name?.split(' ')[0]);
-  if (names.length <= 3) return names.join(', ');
-  return `${names.slice(0, 3).join(', ')} +${names.length - 3}`;
-});
-
 const currentContact = computed(() => {
-  if (isGroupConversation.value) {
-    return {
-      name: groupDisplayName.value,
-      thumbnail: '',
-      availability_status: '',
-    };
-  }
-
-  const contact = senderId.value
+  return senderId.value
     ? store.getters['contacts/getContact'](senderId.value)
     : {};
-
-  // For internal conversations, show the other agent's name:
-  // If the assignee is someone else (they messaged you), show the assignee info.
-  // If you are the assignee, the contact is the other agent's shadow — name is correct.
-  if (
-    isInternalInbox.value &&
-    assignee.value?.id &&
-    assignee.value.id !== currentUser.value?.id
-  ) {
-    return {
-      name: assignee.value.name,
-      thumbnail: assignee.value.thumbnail,
-      availabilityStatus: assignee.value.availability_status,
-    };
-  }
-
-  return contact;
 });
 
 const isActiveChat = computed(() => {

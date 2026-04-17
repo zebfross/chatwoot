@@ -3,7 +3,6 @@ import { computed, ref } from 'vue';
 import { getInboxIconByType } from 'dashboard/helper/inbox';
 import { useRouter, useRoute } from 'vue-router';
 import { frontendURL, conversationUrl } from 'dashboard/helper/URLHelper.js';
-import { useMapGetter } from 'dashboard/composables/store';
 import { dynamicTime, shortTimestamp } from 'shared/helpers/timeHelper';
 
 import Icon from 'dashboard/components-next/icon/Icon.vue';
@@ -36,62 +35,15 @@ const route = useRoute();
 
 const cardMessagePreviewWithMetaRef = ref(null);
 
-const currentUser = useMapGetter('getCurrentUser');
-
-const inbox = computed(() => props.stateInbox);
-
-const isInternalInbox = computed(() => {
-  const ct = inbox.value?.channelType || inbox.value?.channel_type;
-  return ct === 'Channel::Internal';
-});
-
-const isGroupConversation = computed(
-  () => props.conversation?.conversation_type === 'group_conversation'
-);
-
-const groupDisplayName = computed(() => {
-  const customName = props.conversation?.additional_attributes?.group_name;
-  if (customName) return customName;
-  const participants = props.conversation?.participants || [];
-  const otherParticipants = participants.filter(
-    p => p.id !== currentUser.value?.id
-  );
-  if (otherParticipants.length === 0) return 'Group';
-  const names = otherParticipants.map(p => p.name?.split(' ')[0]);
-  if (names.length <= 3) return names.join(', ');
-  return `${names.slice(0, 3).join(', ')} +${names.length - 3}`;
-});
-
-const currentContact = computed(() => {
-  // For group conversations, show participant names
-  if (isGroupConversation.value) {
-    return {
-      name: groupDisplayName.value,
-      thumbnail: '',
-      availabilityStatus: '',
-    };
-  }
-  // For internal conversations, show the other agent's name
-  const assignee = props.conversation?.meta?.assignee;
-  if (
-    isInternalInbox.value &&
-    assignee?.id &&
-    assignee.id !== currentUser.value?.id
-  ) {
-    return {
-      name: assignee.name,
-      thumbnail: assignee.thumbnail,
-      availabilityStatus: assignee.availability_status,
-    };
-  }
-  return props.contact;
-});
+const currentContact = computed(() => props.contact);
 
 const currentContactName = computed(() => currentContact.value?.name);
 const currentContactThumbnail = computed(() => currentContact.value?.thumbnail);
 const currentContactStatus = computed(
   () => currentContact.value?.availabilityStatus
 );
+
+const inbox = computed(() => props.stateInbox);
 
 const inboxName = computed(() => inbox.value?.name);
 

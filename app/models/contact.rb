@@ -56,7 +56,6 @@ class Contact < ApplicationRecord
             format: { with: /\+[1-9]\d{1,14}\z/, message: I18n.t('errors.contacts.phone_number.invalid') }
 
   belongs_to :account
-  belongs_to :shadow_user, class_name: 'User', optional: true, foreign_key: :shadow_user_id
   has_many :conversations, dependent: :destroy_async
   has_many :contact_inboxes, dependent: :destroy_async
   has_many :csat_survey_responses, dependent: :destroy_async
@@ -70,9 +69,6 @@ class Contact < ApplicationRecord
   before_save :sync_contact_attributes
 
   enum contact_type: { visitor: 0, lead: 1, customer: 2 }
-
-  scope :shadow_contacts, -> { where.not(shadow_user_id: nil) }
-  scope :non_shadow, -> { where(shadow_user_id: nil) }
 
   scope :order_on_last_activity_at, lambda { |direction|
     order(

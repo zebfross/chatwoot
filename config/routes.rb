@@ -229,7 +229,6 @@ Rails.application.routes.draw do
             end
           end
 
-          resources :internal_contacts, only: [:index]
           resources :inbox_members, only: [:create, :show], param: :inbox_id do
             collection do
               delete :destroy

@@ -64,7 +64,7 @@ class Conversation < ApplicationRecord
 
   validates :account_id, presence: true
   validates :inbox_id, presence: true
-  validates :contact_id, presence: true, unless: :group_conversation?
+  validates :contact_id, presence: true
   before_validation :validate_additional_attributes
   before_validation :reset_agent_bot_when_assignee_present
   validates :additional_attributes, jsonb_attributes_length: true
@@ -74,7 +74,6 @@ class Conversation < ApplicationRecord
 
   enum status: { open: 0, resolved: 1, pending: 2, snoozed: 3 }
   enum priority: { low: 0, medium: 1, high: 2, urgent: 3 }
-  enum conversation_type: { direct: 0, group_conversation: 1 }
 
   scope :unassigned, -> { where(assignee_id: nil) }
   scope :assigned, -> { where.not(assignee_id: nil) }
@@ -102,8 +101,8 @@ class Conversation < ApplicationRecord
   belongs_to :inbox
   belongs_to :assignee, class_name: 'User', optional: true, inverse_of: :assigned_conversations
   belongs_to :assignee_agent_bot, class_name: 'AgentBot', optional: true
-  belongs_to :contact, optional: true
-  belongs_to :contact_inbox, optional: true
+  belongs_to :contact
+  belongs_to :contact_inbox
   belongs_to :team, optional: true
   belongs_to :campaign, optional: true
 
@@ -111,7 +110,6 @@ class Conversation < ApplicationRecord
   has_many :messages, dependent: :destroy_async, autosave: true
   has_one :csat_survey_response, dependent: :destroy_async
   has_many :conversation_participants, dependent: :destroy_async
-  has_many :participants, through: :conversation_participants, source: :user
   has_many :notifications, as: :primary_actor, dependent: :destroy_async
   has_many :attachments, through: :messages
   has_many :reporting_events, dependent: :destroy_async
@@ -255,7 +253,7 @@ class Conversation < ApplicationRecord
   end
 
   def determine_conversation_status
-    self.status = :resolved and return if contact&.blocked?
+    self.status = :resolved and return if contact.blocked?
 
     return handle_campaign_status if campaign.present?
 

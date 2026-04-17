@@ -106,13 +106,7 @@ class ConversationFinder
   def find_conversation_by_inbox
     @conversations = current_account.conversations
 
-    unless params[:inbox_id]
-      # Exclude internal conversations from "All Conversations" view;
-      # PermissionFilterService enforces per-user privacy for internal convos
-      internal_ids = current_account.inboxes.where(channel_type: 'Channel::Internal').pluck(:id)
-      @conversations = @conversations.where.not(inbox_id: internal_ids) if internal_ids.any?
-      return
-    end
+    return unless params[:inbox_id]
 
     @conversations = @conversations.where(inbox_id: @inbox_ids)
   end

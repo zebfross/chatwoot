@@ -1,6 +1,5 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { useVuelidate } from '@vuelidate/core';
 import { required, requiredIf } from '@vuelidate/validators';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
@@ -10,7 +9,6 @@ import {
   getEffectiveChannelType,
   stripUnsupportedMarkdown,
 } from 'dashboard/helper/editorHelper';
-import { useMapGetter } from 'dashboard/composables/store';
 import {
   buildContactableInboxesList,
   prepareNewMessagePayload,
@@ -18,8 +16,6 @@ import {
 } from 'dashboard/components-next/NewConversation/helpers/composeConversationHelper.js';
 
 import ContactSelector from './ContactSelector.vue';
-import AgentSelector from './AgentSelector.vue';
-import MultiAgentSelector from './MultiAgentSelector.vue';
 import InboxSelector from './InboxSelector.vue';
 import EmailOptions from './EmailOptions.vue';
 import MessageEditor from './MessageEditor.vue';
@@ -51,21 +47,12 @@ const emit = defineEmits([
   'updateTargetInbox',
   'clearSelectedContact',
   'createConversation',
-  'selectAgent',
-  'createGroupConversation',
 ]);
-
-const { t } = useI18n();
-const inboxesList = useMapGetter('inboxes/getInboxes');
 
 const DEFAULT_FORMATTING = 'Context::Default';
 
 const showContactsDropdown = ref(false);
 const showInboxesDropdown = ref(false);
-const selectedInternalAgent = ref(null);
-const isGroupMode = ref(false);
-const selectedGroupAgents = ref([]);
-const groupName = ref('');
 const showCcEmailsDropdown = ref(false);
 const showBccEmailsDropdown = ref(false);
 
@@ -78,10 +65,6 @@ const state = props.formState || {
   bccEmails: '',
   attachedFiles: [],
 };
-
-const isInternal = computed(
-  () => props.targetInbox?.channelType === INBOX_TYPES.INTERNAL
-);
 
 const inboxTypes = computed(() => ({
   isEmail: props.targetInbox?.channelType === INBOX_TYPES.EMAIL,
@@ -115,7 +98,7 @@ const effectiveChannelType = computed(() =>
 );
 
 const validationRules = computed(() => ({
-  selectedContact: { required: requiredIf(!isGroupMode.value) },
+  selectedContact: { required },
   targetInbox: { required },
   message: { required: requiredIf(!inboxTypes.value.isWhatsapp) },
   subject: { required: requiredIf(inboxTypes.value.isEmail) },
@@ -152,16 +135,7 @@ const newMessagePayload = () => {
 };
 
 const contactableInboxesList = computed(() => {
-  return buildContactableInboxesList(
-    props.selectedContact?.contactInboxes,
-    inboxesList.value
-  );
-});
-
-const hasInternalInbox = computed(() => {
-  return contactableInboxesList.value.some(
-    inbox => inbox.channelType === INBOX_TYPES.INTERNAL
-  );
+  return buildContactableInboxesList(props.selectedContact?.contactInboxes);
 });
 
 const showNoInboxAlert = computed(() => {
@@ -252,26 +226,12 @@ const removeTargetInbox = value => {
 
   stripMessageFormatting(DEFAULT_FORMATTING);
 
-  selectedInternalAgent.value = null;
-  isGroupMode.value = false;
-  selectedGroupAgents.value = [];
   emit('updateTargetInbox', value);
   state.attachedFiles = [];
 };
 
-const handleAgentSelect = agent => {
-  selectedInternalAgent.value = agent;
-  emit('selectAgent', agent);
-};
-
-const clearSelectedAgent = () => {
-  selectedInternalAgent.value = null;
-  emit('clearSelectedContact');
-};
-
 const clearSelectedContact = () => {
   removeSignatureFromMessage();
-  selectedInternalAgent.value = null;
   emit('clearSelectedContact');
   state.message = '';
   state.attachedFiles = [];
@@ -313,30 +273,6 @@ const clearForm = () => {
 };
 
 const handleSendMessage = async () => {
-  if (isGroupMode.value) {
-    if (selectedGroupAgents.value.length === 0 || !props.targetInbox) return;
-    try {
-      const success = await emit('createGroupConversation', {
-        payload: {
-          inboxId: props.targetInbox.id,
-          conversationType: 'group_conversation',
-          participantUserIds: selectedGroupAgents.value.map(a => a.id),
-          message: { content: state.message },
-          name: groupName.value.trim() || undefined,
-        },
-      });
-      if (success) {
-        clearForm();
-        isGroupMode.value = false;
-        selectedGroupAgents.value = [];
-        groupName.value = '';
-      }
-    } catch (error) {
-      // Form will not be cleared if conversation creation fails
-    }
-    return;
-  }
-
   const isValid = await v$.value.$validate();
   if (!isValid) return;
 
@@ -395,72 +331,7 @@ const shouldShowMessageEditor = computed(() => {
     class="w-[42rem] divide-y divide-n-strong overflow-visible transition-all duration-300 ease-in-out top-full flex flex-col bg-n-alpha-3 border border-n-strong shadow-sm backdrop-blur-[100px] rounded-xl min-w-0 max-h-[calc(100vh-8rem)]"
   >
     <div class="flex-1 overflow-y-auto divide-y divide-n-strong">
-      <div v-if="isInternal" class="flex flex-col">
-        <div class="flex items-center gap-2 px-4 pt-3 pb-1">
-          <button
-            class="text-xs font-medium px-2 py-1 rounded-md transition-colors"
-            :class="
-              !isGroupMode
-                ? 'bg-n-brand text-white'
-                : 'bg-n-alpha-2 text-n-slate-11 hover:bg-n-alpha-3'
-            "
-            @click="
-              isGroupMode = false;
-              selectedGroupAgents = [];
-            "
-          >
-            {{ t('COMPOSE_NEW_CONVERSATION.FORM.CONVERSATION_TYPE.DIRECT') }}
-          </button>
-          <button
-            class="text-xs font-medium px-2 py-1 rounded-md transition-colors"
-            :class="
-              isGroupMode
-                ? 'bg-n-brand text-white'
-                : 'bg-n-alpha-2 text-n-slate-11 hover:bg-n-alpha-3'
-            "
-            @click="
-              isGroupMode = true;
-              selectedInternalAgent = null;
-            "
-          >
-            {{ t('COMPOSE_NEW_CONVERSATION.FORM.CONVERSATION_TYPE.GROUP') }}
-          </button>
-        </div>
-        <div v-if="isGroupMode" class="px-4 py-3">
-          <div class="flex items-center w-full gap-3 min-h-7">
-            <label
-              class="text-sm font-medium text-n-slate-11 whitespace-nowrap"
-            >
-              {{ t('COMPOSE_NEW_CONVERSATION.FORM.GROUP_NAME.LABEL') }}
-            </label>
-            <input
-              v-model="groupName"
-              type="text"
-              :placeholder="
-                t('COMPOSE_NEW_CONVERSATION.FORM.GROUP_NAME.PLACEHOLDER')
-              "
-              class="flex-1 min-w-0 text-sm bg-transparent border-none outline-none text-n-slate-12 placeholder:text-n-slate-10"
-            />
-          </div>
-        </div>
-        <MultiAgentSelector
-          v-if="isGroupMode"
-          v-model:selected-agents="selectedGroupAgents"
-          :has-errors="
-            selectedGroupAgents.length === 0 &&
-            validationStates.isContactInvalid
-          "
-        />
-        <AgentSelector
-          v-else
-          :selected-agent="selectedInternalAgent"
-          :has-errors="validationStates.isContactInvalid"
-          @select-agent="handleAgentSelect"
-          @clear-agent="clearSelectedAgent"
-        />
-      </div>
       <ContactSelector
-        v-else
         :contacts="contacts"
         :selected-contact="selectedContact"
         :show-contacts-dropdown="showContactsDropdown"
@@ -483,7 +354,6 @@ const shouldShowMessageEditor = computed(() => {
         :show-inboxes-dropdown="showInboxesDropdown"
         :contactable-inboxes-list="contactableInboxesList"
         :has-errors="validationStates.isInboxInvalid"
-        :has-internal-inbox="hasInternalInbox"
         @update-inbox="removeTargetInbox"
         @toggle-dropdown="showInboxesDropdown = $event"
         @handle-inbox-action="handleInboxAction"
