@@ -15,7 +15,6 @@ class NotificationListener < BaseListener
 
   def conversation_created(event)
     conversation, account = extract_conversation_and_account(event)
-    return if conversation.pending?
 
     conversation.inbox.members.each do |agent|
       NotificationBuilder.new(
