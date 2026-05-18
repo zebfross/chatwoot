@@ -7,15 +7,17 @@
 
 class ContactIdentifyAction
   include UrlHelper
-  pattr_initialize [:contact!, :params!, { retain_original_contact_name: false, discard_invalid_attrs: false }]
+  pattr_initialize [:contact!, :params!, { retain_original_contact_name: false, discard_invalid_attrs: false, skip_merge: false }]
 
   def perform
     @attributes_to_update = [:identifier, :name, :email, :phone_number]
 
     ActiveRecord::Base.transaction do
-      merge_if_existing_identified_contact
-      merge_if_existing_email_contact
-      merge_if_existing_phone_number_contact
+      unless skip_merge
+        merge_if_existing_identified_contact
+        merge_if_existing_email_contact
+        merge_if_existing_phone_number_contact
+      end
       update_contact
     end
     @contact
