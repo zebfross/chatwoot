@@ -2,7 +2,7 @@ import md5 from 'md5';
 import Cookies from 'js-cookie';
 
 const REQUIRED_USER_KEYS = ['avatar_url', 'email', 'name'];
-const ALLOWED_USER_ATTRIBUTES = [...REQUIRED_USER_KEYS, 'identifier_hash'];
+const ALLOWED_USER_ATTRIBUTES = [...REQUIRED_USER_KEYS, 'phone_number', 'identifier_hash'];
 
 export const getUserCookieName = () => {
   const SET_USER_COOKIE_PREFIX = 'cw_user_';
